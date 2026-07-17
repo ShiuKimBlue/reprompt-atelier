@@ -1,0 +1,728 @@
+{
+  "version": "2.0",
+  "chapters": [
+    {
+      "id": "guide",
+      "title": "提示工程指南",
+      "icon": "Compass",
+      "order": 1,
+      "sections": []
+    },
+    {
+      "id": "introduction",
+      "title": "提示工程简介",
+      "icon": "BookOpen",
+      "order": 2,
+      "sections": [
+        {
+          "id": "llm-settings",
+          "title": "大语言模型设置",
+          "order": 1
+        },
+        {
+          "id": "basics",
+          "title": "基本概念",
+          "order": 2
+        },
+        {
+          "id": "elements",
+          "title": "提示词要素",
+          "order": 3
+        },
+        {
+          "id": "tips",
+          "title": "设计提示的通用技巧",
+          "order": 4
+        },
+        {
+          "id": "examples",
+          "title": "提示词示例",
+          "order": 5
+        }
+      ]
+    },
+    {
+      "id": "techniques",
+      "title": "提示技术",
+      "icon": "Lightbulb",
+      "order": 3,
+      "sections": [
+        {
+          "id": "zero-shot",
+          "title": "零样本提示",
+          "order": 1
+        },
+        {
+          "id": "few-shot",
+          "title": "少样本提示",
+          "order": 2
+        },
+        {
+          "id": "chain-of-thought",
+          "title": "链式思考（CoT）提示",
+          "order": 3
+        },
+        {
+          "id": "self-consistency",
+          "title": "自我一致性",
+          "order": 4
+        },
+        {
+          "id": "generate-knowledge",
+          "title": "生成知识提示",
+          "order": 5
+        },
+        {
+          "id": "prompt-chaining",
+          "title": "Prompt Chaining",
+          "order": 6
+        },
+        {
+          "id": "tree-of-thoughts",
+          "title": "思维树（ToT）",
+          "order": 7
+        },
+        {
+          "id": "rag",
+          "title": "检索增强生成（RAG）",
+          "order": 8
+        },
+        {
+          "id": "art",
+          "title": "自动推理并使用工具（ART）",
+          "order": 9
+        },
+        {
+          "id": "ape",
+          "title": "自动提示工程师",
+          "order": 10
+        },
+        {
+          "id": "active-prompt",
+          "title": "Active-Prompt",
+          "order": 11
+        },
+        {
+          "id": "directional-stimulus",
+          "title": "方向性刺激提示",
+          "order": 12
+        },
+        {
+          "id": "pal",
+          "title": "Program-Aided Language Models",
+          "order": 13
+        },
+        {
+          "id": "react",
+          "title": "ReAct框架",
+          "order": 14
+        },
+        {
+          "id": "reflexion",
+          "title": "Reflexion",
+          "order": 15
+        },
+        {
+          "id": "multimodal-cot",
+          "title": "多模态思维链提示方法",
+          "order": 16
+        },
+        {
+          "id": "graph-prompting",
+          "title": "基于图的提示",
+          "order": 17
+        },
+        {
+          "id": "meta-prompting",
+          "title": "Meta-Prompting",
+          "order": 18
+        }
+      ]
+    },
+    {
+      "id": "applications",
+      "title": "提示应用",
+      "icon": "Blocks",
+      "order": 4,
+      "sections": [
+        {
+          "id": "generating-data",
+          "title": "生成数据",
+          "order": 1
+        },
+        {
+          "id": "generating-code",
+          "title": "生成代码",
+          "order": 2
+        },
+        {
+          "id": "job-classification",
+          "title": "毕业生职位分类案例研究",
+          "order": 3
+        },
+        {
+          "id": "prompt-functions",
+          "title": "提示函数",
+          "order": 4
+        },
+        {
+          "id": "function-calling",
+          "title": "Function Calling",
+          "order": 5
+        },
+        {
+          "id": "context-caching",
+          "title": "上下文缓存",
+          "order": 6
+        },
+        {
+          "id": "finetuning-gpt4o",
+          "title": "微调 GPT-4o",
+          "order": 7
+        },
+        {
+          "id": "dataset-diversity",
+          "title": "处理生成数据集的多样性",
+          "order": 8
+        },
+        {
+          "id": "synthetic-dataset-rag",
+          "title": "生成 RAG 合成数据集",
+          "order": 9
+        }
+      ]
+    },
+    {
+      "id": "prompts",
+      "title": "Prompt Hub",
+      "icon": "MessagesSquare",
+      "order": 5,
+      "sections": [
+        {
+          "id": "prompt-classification",
+          "title": "分类",
+          "order": 1,
+          "children": [
+            {
+              "id": "prompt-sentiment",
+              "title": "情感分类",
+              "order": 1
+            },
+            {
+              "id": "prompt-sentiment-fewshot",
+              "title": "少样本情感分类",
+              "order": 2
+            }
+          ]
+        },
+        {
+          "id": "prompt-coding",
+          "title": "编程",
+          "order": 2,
+          "children": [
+            {
+              "id": "prompt-code-snippet",
+              "title": "生成代码片段",
+              "order": 1
+            },
+            {
+              "id": "prompt-mysql-query",
+              "title": "生成 MySQL 查询",
+              "order": 2
+            },
+            {
+              "id": "prompt-tikz",
+              "title": "绘制 TiKZ 图表",
+              "order": 3
+            }
+          ]
+        },
+        {
+          "id": "prompt-creativity",
+          "title": "创意",
+          "order": 3,
+          "children": [
+            {
+              "id": "prompt-rhymes",
+              "title": "押韵生成",
+              "order": 1
+            },
+            {
+              "id": "prompt-infinite-primes",
+              "title": "无限素数",
+              "order": 2
+            },
+            {
+              "id": "prompt-interdisciplinary",
+              "title": "跨学科创意",
+              "order": 3
+            },
+            {
+              "id": "prompt-new-words",
+              "title": "创造新词汇",
+              "order": 4
+            }
+          ]
+        },
+        {
+          "id": "prompt-evaluation",
+          "title": "评估",
+          "order": 4,
+          "children": [
+            {
+              "id": "prompt-plato-evaluation",
+              "title": "评估柏拉图对话",
+              "order": 1
+            }
+          ]
+        },
+        {
+          "id": "prompt-information-extraction",
+          "title": "信息提取",
+          "order": 5,
+          "children": [
+            {
+              "id": "prompt-extract-models",
+              "title": "提取模型名称",
+              "order": 1
+            }
+          ]
+        },
+        {
+          "id": "prompt-image-generation",
+          "title": "图像生成",
+          "order": 6,
+          "children": [
+            {
+              "id": "prompt-alphabet-person",
+              "title": "用字母表绘制人物",
+              "order": 1
+            }
+          ]
+        },
+        {
+          "id": "prompt-mathematics",
+          "title": "数学",
+          "order": 7,
+          "children": [
+            {
+              "id": "prompt-composite-functions",
+              "title": "求值复合函数",
+              "order": 1
+            },
+            {
+              "id": "prompt-odd-numbers",
+              "title": "奇数求和",
+              "order": 2
+            }
+          ]
+        },
+        {
+          "id": "prompt-question-answering",
+          "title": "问答",
+          "order": 8,
+          "children": [
+            {
+              "id": "prompt-closed-domain",
+              "title": "封闭域问答",
+              "order": 1
+            },
+            {
+              "id": "prompt-open-domain",
+              "title": "开放域问答",
+              "order": 2
+            },
+            {
+              "id": "prompt-science-qa",
+              "title": "科学问答",
+              "order": 3
+            }
+          ]
+        },
+        {
+          "id": "prompt-reasoning",
+          "title": "推理",
+          "order": 9,
+          "children": [
+            {
+              "id": "prompt-indirect-reasoning",
+              "title": "间接推理",
+              "order": 1
+            },
+            {
+              "id": "prompt-physical-reasoning",
+              "title": "物理推理",
+              "order": 2
+            }
+          ]
+        },
+        {
+          "id": "prompt-text-summarization",
+          "title": "文本摘要",
+          "order": 10,
+          "children": [
+            {
+              "id": "prompt-explain-concept",
+              "title": "解释概念",
+              "order": 1
+            }
+          ]
+        },
+        {
+          "id": "prompt-truthfulness",
+          "title": "真实性",
+          "order": 11,
+          "children": [
+            {
+              "id": "prompt-hallucination",
+              "title": "识别幻觉",
+              "order": 1
+            }
+          ]
+        },
+        {
+          "id": "prompt-adversarial-prompting",
+          "title": "对抗性提示",
+          "order": 12,
+          "children": [
+            {
+              "id": "prompt-prompt-injection",
+              "title": "提示词注入",
+              "order": 1
+            },
+            {
+              "id": "prompt-prompt-leaking",
+              "title": "提示词泄露",
+              "order": 2
+            },
+            {
+              "id": "prompt-jailbreaking",
+              "title": "越狱",
+              "order": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "models",
+      "title": "模型",
+      "icon": "Brain",
+      "order": 6,
+      "sections": [
+        {
+          "id": "chatgpt",
+          "title": "ChatGPT",
+          "order": 1
+        },
+        {
+          "id": "claude",
+          "title": "Claude",
+          "order": 2
+        },
+        {
+          "id": "code-llama",
+          "title": "Code Llama",
+          "order": 3
+        },
+        {
+          "id": "gemini",
+          "title": "Gemini",
+          "order": 4
+        },
+        {
+          "id": "gemini-advanced",
+          "title": "Gemini Advanced",
+          "order": 5
+        },
+        {
+          "id": "gemini-1-5-pro",
+          "title": "Gemini 1.5 Pro",
+          "order": 6
+        },
+        {
+          "id": "gemma",
+          "title": "Gemma",
+          "order": 7
+        },
+        {
+          "id": "gpt-4",
+          "title": "GPT-4",
+          "order": 8
+        },
+        {
+          "id": "grok-1",
+          "title": "Grok-1",
+          "order": 9
+        },
+        {
+          "id": "kimi-k2-5",
+          "title": "Kimi K2.5",
+          "order": 10
+        },
+        {
+          "id": "llama",
+          "title": "LLaMA",
+          "order": 11
+        },
+        {
+          "id": "llama-3",
+          "title": "Llama 3",
+          "order": 12
+        },
+        {
+          "id": "mistral",
+          "title": "Mistral 7B",
+          "order": 13
+        },
+        {
+          "id": "mistral-large",
+          "title": "Mistral Large",
+          "order": 14
+        },
+        {
+          "id": "mixtral",
+          "title": "Mixtral",
+          "order": 15
+        },
+        {
+          "id": "mixtral-8x22b",
+          "title": "Mixtral 8x22B",
+          "order": 16
+        },
+        {
+          "id": "olmo",
+          "title": "OLMo",
+          "order": 17
+        },
+        {
+          "id": "phi-2",
+          "title": "Phi-2",
+          "order": 18
+        },
+        {
+          "id": "sora",
+          "title": "Sora",
+          "order": 19
+        },
+        {
+          "id": "collection",
+          "title": "LLM Collection",
+          "order": 20
+        }
+      ]
+    },
+    {
+      "id": "risks",
+      "title": "风险和误用",
+      "icon": "AlertTriangle",
+      "order": 7,
+      "sections": [
+        {
+          "id": "adversarial-prompting",
+          "title": "对抗性提示",
+          "order": 1
+        },
+        {
+          "id": "factuality",
+          "title": "真实性",
+          "order": 2
+        },
+        {
+          "id": "biases",
+          "title": "偏见",
+          "order": 3
+        }
+      ]
+    },
+    {
+      "id": "research",
+      "title": "LLM研究发现",
+      "icon": "FlaskConical",
+      "order": 8,
+      "sections": [
+        {
+          "id": "llm-agents",
+          "title": "LLM 智能体",
+          "order": 1
+        },
+        {
+          "id": "research-rag",
+          "title": "检索增强生成 (RAG)",
+          "order": 2
+        },
+        {
+          "id": "llm-reasoning",
+          "title": "LLM 推理能力",
+          "order": 3
+        },
+        {
+          "id": "rag-faithfulness",
+          "title": "RAG 忠实度",
+          "order": 4
+        },
+        {
+          "id": "llm-recall",
+          "title": "LLM 上下文记忆",
+          "order": 5
+        },
+        {
+          "id": "rag-hallucination",
+          "title": "RAG 减少幻觉",
+          "order": 6
+        },
+        {
+          "id": "synthetic-data",
+          "title": "合成数据",
+          "order": 7
+        },
+        {
+          "id": "thoughtsculpt",
+          "title": "ThoughtSculpt",
+          "order": 8
+        },
+        {
+          "id": "infini-attention",
+          "title": "Infini-Attention",
+          "order": 9
+        },
+        {
+          "id": "guided-cot",
+          "title": "LM-Guided CoT",
+          "order": 10
+        },
+        {
+          "id": "trustworthiness",
+          "title": "LLM 可信度",
+          "order": 11
+        },
+        {
+          "id": "llm-tokenization",
+          "title": "LLM 分词",
+          "order": 12
+        },
+        {
+          "id": "groq",
+          "title": "Groq是什么？",
+          "order": 13
+        },
+        {
+          "id": "flan",
+          "title": "Flan",
+          "order": 14
+        }
+      ]
+    },
+    {
+      "id": "papers",
+      "title": "论文",
+      "icon": "FileText",
+      "order": 9,
+      "sections": []
+    },
+    {
+      "id": "tools",
+      "title": "工具和库",
+      "icon": "Wrench",
+      "order": 10,
+      "sections": []
+    },
+    {
+      "id": "notebooks",
+      "title": "提示词工程笔记本",
+      "icon": "Notebook",
+      "order": 11,
+      "sections": []
+    },
+    {
+      "id": "datasets",
+      "title": "数据集",
+      "icon": "Database",
+      "order": 12,
+      "sections": []
+    },
+    {
+      "id": "additional-readings",
+      "title": "阅读推荐",
+      "icon": "BookMarked",
+      "order": 13,
+      "sections": []
+    },
+    {
+      "id": "agents",
+      "title": "AI 智能体",
+      "icon": "Bot",
+      "order": 14,
+      "sections": [
+        {
+          "id": "agents-introduction",
+          "title": "AI 智能体简介",
+          "order": 1
+        },
+        {
+          "id": "agents-components",
+          "title": "智能体组件",
+          "order": 2
+        },
+        {
+          "id": "agents-workflows-vs-agents",
+          "title": "AI 工作流 vs AI 智能体",
+          "order": 3
+        },
+        {
+          "id": "agents-context-engineering",
+          "title": "上下文工程",
+          "order": 4
+        },
+        {
+          "id": "agents-context-engineering-deep-dive",
+          "title": "上下文工程深入",
+          "order": 5
+        },
+        {
+          "id": "agents-function-calling",
+          "title": "函数调用",
+          "order": 6
+        },
+        {
+          "id": "agents-deep-agents",
+          "title": "深度智能体",
+          "order": 7
+        }
+      ]
+    },
+    {
+      "id": "guides",
+      "title": "指南",
+      "icon": "GraduationCap",
+      "order": 15,
+      "sections": [
+        {
+          "id": "guides-optimizing-prompts",
+          "title": "优化提示词",
+          "order": 1
+        },
+        {
+          "id": "guides-deep-research",
+          "title": "OpenAI Deep Research",
+          "order": 2
+        },
+        {
+          "id": "guides-reasoning-llms",
+          "title": "推理大语言模型",
+          "order": 3
+        },
+        {
+          "id": "guides-4o-image-generation",
+          "title": "4o 图像生成",
+          "order": 4
+        },
+        {
+          "id": "guides-context-engineering-guide",
+          "title": "上下文工程指南",
+          "order": 5
+        }
+      ]
+    }
+  ]
+}

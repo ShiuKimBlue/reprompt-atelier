@@ -1,0 +1,50 @@
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies and build output
+node_modules/
+dist/
+dist-ssr/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Local Claude Code instructions and runtime state
+.claude/
+CLAUDE.md
+README.md
+
+# Private design and content-production assets
+design-previews/
+docs/
+scripts/
+gpt-image-2-images/
+gpt-image-2-prompts/
+nano-banana-pro-images/
+nano-banana-pro-prompts/
+seedream-4.5-images/
+seedream-4.5-prompts/
+seedream-5.0-lite-images/
+seedream-5.0-lite-prompts/
+
+# Accidental Windows shell artifact
+nul
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
