@@ -1,31 +1,38 @@
 # Logs
-logs/
+logs
 *.log
 npm-debug.log*
 yarn-debug.log*
+yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Dependencies and build output
-node_modules/
-dist/
-dist-ssr/
-
-# Local environment and secrets
+node_modules
+dist
+dist-ssr
+*.local
 .env
 .env.*
 !.env.example
-*.local
 
-# Local Claude Code instructions and runtime state
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 本地维护文档与 Claude 配置（不进公开仓库）
 .claude/
-CLAUDE.md
-README.md
-
-# Private design and content-production assets
-design-previews/
 docs/
+design-previews/
 scripts/
+
+# 画廊源素材（不进公开仓库）
 gpt-image-2-images/
 gpt-image-2-prompts/
 nano-banana-pro-images/
@@ -35,16 +42,9 @@ seedream-4.5-prompts/
 seedream-5.0-lite-images/
 seedream-5.0-lite-prompts/
 
+# 项目说明（不进公开仓库）
+CLAUDE.md
+report.md
+
 # Accidental Windows shell artifact
 nul
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea/
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
