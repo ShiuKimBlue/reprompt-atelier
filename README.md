@@ -1,9 +1,13 @@
-# Reprompt Atelier / 重提示工坊
+<div align="center">
 
-**Prompts are spells. Welcome to the prompt engineering atelier.**  
-**提示即咒语，欢迎来到提示词工程魔法工坊！**
+# Reprompt Atelier 🪄 重提示工坊
+
+*Prompts are spells. Welcome to the prompt engineering atelier.*  
+*提示即咒语，欢迎来到提示词工程魔法工坊！*
 
 ![Reprompt Atelier](./demo.png)
+
+</div>
 
 **Reprompt** — Turn a rough idea into a sharper prompt. Choose a fast pass, a three-specialist forge, or image-to-prompt.  
 **工作台** — 把一个粗糙想法锻造成更锋利的提示词。想快一点、想让三位术师协作，或者想从图里反推提示词，都行。
@@ -14,10 +18,8 @@
 **Gallery** — A curated waterfall display of nearly 100 artworks, with every prompt fully exposed. Steal the incantation, learn the craft.  
 **咒术画廊** — 精选近百件艺术作品以瀑布流展示，对应的提示词也毫无保留地呈现给你，实践出真知，想复现可直接带走。
 
-🔗 **[Try it now](https://reprompt-atelier.netlify.app/)** · **[立即体验](https://reprompt-atelier.netlify.app/)**
-
-If the demo caught your eye, leave the project a ⭐, then jump into the live experience.
-如果你看到效果图心动了，请给本项目点个⭐，然后点击立即体验叭！
+If the demo caught your eye, leave the project a ⭐, then 👉 **[Try it now](https://reprompt-atelier.netlify.app/)**.  
+如果你看到效果图心动了，请给本项目点个⭐，赶紧点击 👉 **[立即体验](https://reprompt-atelier.netlify.app/)** 叭！
 
 ---
 
@@ -170,7 +172,7 @@ When you click "Run Deep Optimize":
      输出一个精炼的、可直接使用的提示词。
 
 All agents stream their reasoning in real-time (if enabled). You see how they think.  
-所有智能体实时流式输出它们的推理（如果启用）。你能看到它们如何思考。
+所有智能体实时流式输出它们的推理过程（如果启用的话），你能看到它们如何思考。
 
 ---
 
@@ -264,4 +266,8 @@ MIT 许可证。详见 [LICENSE](LICENSE)。开源万岁，署名即可。
 
 ---
 
+<div align="center">
+
 *Reprompt · Refine · Reveal*
+
+</div>
