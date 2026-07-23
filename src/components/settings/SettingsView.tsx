@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useSettingsStore } from '@/stores/useSettingsStore'
 import { useUIStore } from '@/stores/useUIStore'
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -73,16 +74,27 @@ function modelEquals(formValue: ModelConfig, savedValue: ModelConfig | null): bo
   return JSON.stringify(normalizeModelConfig(formValue)) === JSON.stringify(savedValue)
 }
 
-const OVERSCROLL_THRESHOLD = 180
-const OVERSCROLL_LOCK_MS = 900
-const OVERSCROLL_RESET_MS = 500
+/** Raw wheel/touch accumulation needed to commit a mode change */
+const OVERSCROLL_COMMIT = 150
+/** Soft wall visual scale (px resistance domain for rubberband) */
+const OVERSCROLL_DIMENSION = 140
+/** Max visual pull after rubberband (px) */
+const OVERSCROLL_MAX_PULL = 52
+/** Idle after last boundary gesture → snap back if not committed */
+const OVERSCROLL_IDLE_MS = 140
+/** Lock input during directed page transition */
+const OVERSCROLL_LOCK_MS = 520
+const MODE_EXIT_MS = 200
+const MODE_ENTER_MS = 220
 
 type PromptPanelId = 'analyzer' | 'planner' | 'synthesizer' | 'quickOptimize' | 'image2Prompt'
 type ModelPanelId = 'analyzer' | 'planner' | 'synthesizer' | 'image2Prompt'
 type OverscrollDirection = 'prev' | 'next'
+type ModeTransitionDir = 'next' | 'prev' | 'fade'
 
 interface OverscrollState {
   direction: OverscrollDirection | null
+  /** Unsigned raw effort before rubberband */
   amount: number
   lastAt: number
 }
@@ -104,6 +116,19 @@ function resetOverscrollState(state: OverscrollState) {
   state.lastAt = 0
 }
 
+/** Apple-style progressive resistance past an edge */
+function rubberband(overshoot: number, dimension = OVERSCROLL_DIMENSION, constant = 0.55) {
+  if (overshoot <= 0) return 0
+  return (overshoot * dimension * constant) / (dimension + constant * overshoot)
+}
+
+function pullVisualPx(amount: number, direction: OverscrollDirection | null) {
+  if (!direction || amount <= 0) return 0
+  const visual = Math.min(OVERSCROLL_MAX_PULL, rubberband(amount))
+  // next: content lifts up; prev: content dips down
+  return direction === 'next' ? -visual : visual
+}
+
 function createEmptyModelConfig(): ModelConfig {
   return { ...EMPTY_MODEL_CONFIG }
 }
@@ -111,28 +136,48 @@ function createEmptyModelConfig(): ModelConfig {
 export function SettingsView() {
   const settings = useSettingsStore()
   const { activeSettingsMode, setSettingsMode, setSettingsLeaveGuard } = useUIStore()
+  const prefersReducedMotion = usePrefersReducedMotion()
   const [showApiKeys, setShowApiKeys] = useState<Record<string, boolean>>({})
   const [apiSaved, setApiSaved] = useState(false)
   const [promptsSaved, setPromptsSaved] = useState(false)
-  const [isTransitioning, setIsTransitioning] = useState(false)
+  const [transitionPhase, setTransitionPhase] = useState<'idle' | 'exiting' | 'entering'>('idle')
+  const [transitionDir, setTransitionDir] = useState<ModeTransitionDir>('fade')
+  /** Signed visual offset while rubberbanding at page edge (px) */
+  const [edgePull, setEdgePull] = useState(0)
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([])
   const pageRef = useRef<HTMLDivElement | null>(null)
   const wheelLockRef = useRef(false)
   const overscrollRef = useRef<OverscrollState>({ direction: null, amount: 0, lastAt: 0 })
+  const idleSnapRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const touchStartYRef = useRef<number | null>(null)
+  const touchAtBoundaryRef = useRef<OverscrollDirection | null>(null)
+  const modeIndexRef = useRef(0)
+  const activeModeRef = useRef(activeSettingsMode)
+  const prefersReducedMotionRef = useRef(prefersReducedMotion)
 
   useEffect(() => {
     const timers = timersRef.current
-    return () => { timers.forEach(clearTimeout) }
+    return () => {
+      timers.forEach(clearTimeout)
+      if (idleSnapRef.current) clearTimeout(idleSnapRef.current)
+    }
   }, [])
 
   const [expandedPanel, setExpandedPanel] = useState<PromptPanelId | null>(defaultPromptPanelForMode(activeSettingsMode))
   const [expandedModelPanel, setExpandedModelPanel] = useState<ModelPanelId | null>(defaultModelPanelForMode(activeSettingsMode))
 
   useEffect(() => {
+    activeModeRef.current = activeSettingsMode
+    modeIndexRef.current = MODE_ORDER.indexOf(activeSettingsMode)
+    prefersReducedMotionRef.current = prefersReducedMotion
+  }, [activeSettingsMode, prefersReducedMotion])
+
+  useEffect(() => {
     queueMicrotask(() => {
       setExpandedPanel(defaultPromptPanelForMode(activeSettingsMode))
       setExpandedModelPanel(defaultModelPanelForMode(activeSettingsMode))
       resetOverscrollState(overscrollRef.current)
+      setEdgePull(0)
     })
   }, [activeSettingsMode])
 
@@ -160,6 +205,53 @@ export function SettingsView() {
   const modeIndex = MODE_ORDER.indexOf(activeSettingsMode)
   const meta = MODE_META[activeSettingsMode]
   const ModeIcon = meta.icon
+  const pullProgress = Math.min(1, Math.abs(edgePull) / OVERSCROLL_MAX_PULL)
+
+  const pageMotionStyle = (() => {
+    if (prefersReducedMotion) {
+      const dim = transitionPhase !== 'idle'
+      return {
+        transform: 'none' as const,
+        opacity: dim ? 0.35 : 1,
+        transition: `opacity ${dim ? MODE_EXIT_MS : MODE_ENTER_MS}ms ease-out`,
+      }
+    }
+
+    if (transitionPhase === 'exiting') {
+      const outbound =
+        transitionDir === 'next' ? -32
+          : transitionDir === 'prev' ? 32
+            : 14
+      return {
+        transform: `translate3d(0, ${outbound}px, 0)`,
+        opacity: 0.18,
+        transition: `transform ${MODE_EXIT_MS}ms cubic-bezier(0.32, 0.72, 0, 1), opacity ${MODE_EXIT_MS}ms ease-out`,
+      }
+    }
+
+    if (transitionPhase === 'entering') {
+      // Opposite side of exit — one frame at start pose, then idle animates home
+      const inbound =
+        transitionDir === 'next' ? 28
+          : transitionDir === 'prev' ? -28
+            : 10
+      return {
+        transform: `translate3d(0, ${inbound}px, 0)`,
+        opacity: 0.28,
+        transition: 'none',
+      }
+    }
+
+    // Settled page, possibly mid rubber-band
+    const settling = edgePull === 0
+    return {
+      transform: `translate3d(0, ${edgePull}px, 0)`,
+      opacity: 1 - pullProgress * 0.08,
+      transition: settling
+        ? `transform ${MODE_ENTER_MS}ms cubic-bezier(0.32, 0.72, 0, 1), opacity 200ms ease-out`
+        : 'none',
+    }
+  })()
 
   const flashSaved = useCallback((setter: (saved: boolean) => void) => {
     setter(true)
@@ -245,52 +337,227 @@ export function SettingsView() {
     }
   }, [activeSettingsMode])
 
-  const switchMode = useCallback((nextMode: SettingsMode) => {
-    if (nextMode === activeSettingsMode) return
-    setIsTransitioning(true)
+  const clearIdleSnap = useCallback(() => {
+    if (idleSnapRef.current) {
+      clearTimeout(idleSnapRef.current)
+      idleSnapRef.current = null
+    }
+  }, [])
+
+  const snapEdgeBack = useCallback(() => {
+    clearIdleSnap()
+    resetOverscrollState(overscrollRef.current)
+    setEdgePull(0)
+  }, [clearIdleSnap])
+
+  const scheduleIdleSnap = useCallback(() => {
+    clearIdleSnap()
+    idleSnapRef.current = setTimeout(() => {
+      idleSnapRef.current = null
+      if (wheelLockRef.current) return
+      // Release without enough effort → rubber-band home
+      resetOverscrollState(overscrollRef.current)
+      setEdgePull(0)
+    }, OVERSCROLL_IDLE_MS)
+  }, [clearIdleSnap])
+
+  const switchMode = useCallback((nextMode: SettingsMode, dir: ModeTransitionDir = 'fade') => {
+    if (nextMode === activeModeRef.current) return
+    clearIdleSnap()
+    resetOverscrollState(overscrollRef.current)
+    setEdgePull(0)
+    setTransitionDir(dir)
+    setTransitionPhase('exiting')
+    wheelLockRef.current = true
+
+    const exitMs = prefersReducedMotionRef.current ? 1 : MODE_EXIT_MS
+    const enterMs = prefersReducedMotionRef.current ? 1 : MODE_ENTER_MS
+
     timersRef.current.push(setTimeout(() => {
       setSettingsMode(nextMode)
       pageRef.current?.scrollTo({ top: 0 })
       setExpandedPanel(defaultPromptPanelForMode(nextMode))
       setExpandedModelPanel(defaultModelPanelForMode(nextMode))
-      timersRef.current.push(setTimeout(() => setIsTransitioning(false), 180))
-    }, 180))
-  }, [activeSettingsMode, setExpandedModelPanel, setExpandedPanel, setSettingsMode])
+      // Enter from the opposite side of the exit
+      setTransitionPhase('entering')
+      // Paint start pose, then release to idle so CSS can settle into place
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setTransitionPhase('idle')
+          setTransitionDir('fade')
+        })
+      })
+      timersRef.current.push(setTimeout(() => {
+        wheelLockRef.current = false
+      }, Math.max(OVERSCROLL_LOCK_MS, exitMs + enterMs + 80)))
+    }, exitMs))
+  }, [clearIdleSnap, setExpandedModelPanel, setExpandedPanel, setSettingsMode])
 
-  const handleWheel = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
+  const tryCommitOverscroll = useCallback((direction: OverscrollDirection) => {
+    const idx = modeIndexRef.current
+    const nextIndex = direction === 'next' ? idx + 1 : idx - 1
+    const nextMode = MODE_ORDER[nextIndex]
+    if (!nextMode || nextMode === activeModeRef.current) return false
+    switchMode(nextMode, direction)
+    return true
+  }, [switchMode])
+
+  const applyBoundaryDelta = useCallback((deltaY: number, source: 'wheel' | 'touch') => {
     const target = pageRef.current
-    if (!target || wheelLockRef.current || Math.abs(event.deltaY) < 8) return
+    if (!target || wheelLockRef.current) return false
+    if (Math.abs(deltaY) < (source === 'wheel' ? 4 : 2)) return false
 
     const atTop = target.scrollTop <= 0
     const atBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - 2
-    const direction: OverscrollDirection | null = event.deltaY > 0 && atBottom ? 'next' : event.deltaY < 0 && atTop ? 'prev' : null
+    const direction: OverscrollDirection | null =
+      deltaY > 0 && atBottom ? 'next' : deltaY < 0 && atTop ? 'prev' : null
 
     if (!direction) {
-      resetOverscrollState(overscrollRef.current)
-      return
+      if (overscrollRef.current.amount > 0) snapEdgeBack()
+      return false
     }
 
-    const now = Date.now()
+    const idx = modeIndexRef.current
+    const nextIndex = direction === 'next' ? idx + 1 : idx - 1
+    const canNavigate = nextIndex >= 0 && nextIndex < MODE_ORDER.length
+
+    // End of list: soft wall only (no commit), still show resistance
     const overscroll = overscrollRef.current
-    if (overscroll.direction !== direction || now - overscroll.lastAt > OVERSCROLL_RESET_MS) {
+    if (overscroll.direction !== direction) {
       overscroll.direction = direction
       overscroll.amount = 0
     }
-    overscroll.amount += Math.abs(event.deltaY)
-    overscroll.lastAt = now
 
-    const nextIndex = direction === 'next' ? modeIndex + 1 : modeIndex - 1
-    const nextMode = MODE_ORDER[nextIndex]
-    if (!nextMode || nextMode === activeSettingsMode) return
+    // When pulling back toward center, reduce amount
+    const pushingOut =
+      (direction === 'next' && deltaY > 0) || (direction === 'prev' && deltaY < 0)
+    if (pushingOut) {
+      overscroll.amount += Math.abs(deltaY) * (source === 'touch' ? 1.05 : 1)
+    } else {
+      overscroll.amount = Math.max(0, overscroll.amount - Math.abs(deltaY) * 1.2)
+    }
+    overscroll.lastAt = Date.now()
 
-    event.preventDefault()
-    if (overscroll.amount < OVERSCROLL_THRESHOLD) return
+    if (prefersReducedMotionRef.current) {
+      // No live pull; commit only after enough effort
+      if (canNavigate && overscroll.amount >= OVERSCROLL_COMMIT) {
+        resetOverscrollState(overscroll)
+        setEdgePull(0)
+        tryCommitOverscroll(direction)
+        return true
+      }
+      scheduleIdleSnap()
+      return canNavigate
+    }
 
-    resetOverscrollState(overscroll)
-    wheelLockRef.current = true
-    switchMode(nextMode)
-    timersRef.current.push(setTimeout(() => { wheelLockRef.current = false }, OVERSCROLL_LOCK_MS))
-  }, [activeSettingsMode, modeIndex, switchMode])
+    // Live rubber-band visual (cap harder at terminal edge)
+    const amountForVisual = canNavigate ? overscroll.amount : overscroll.amount * 0.55
+    setEdgePull(pullVisualPx(amountForVisual, direction))
+
+    if (canNavigate && overscroll.amount >= OVERSCROLL_COMMIT) {
+      resetOverscrollState(overscroll)
+      // Keep a short outbound flick so exit feels continuous with the pull
+      setEdgePull(direction === 'next' ? -OVERSCROLL_MAX_PULL : OVERSCROLL_MAX_PULL)
+      tryCommitOverscroll(direction)
+      return true
+    }
+
+    scheduleIdleSnap()
+    return true
+  }, [scheduleIdleSnap, snapEdgeBack, tryCommitOverscroll])
+
+  // Wheel + touch: non-passive so we can preventDefault at page edges
+  useEffect(() => {
+    const el = pageRef.current
+    if (!el) return
+
+    const onWheel = (event: WheelEvent) => {
+      if (wheelLockRef.current) return
+
+      const atTop = el.scrollTop <= 0
+      const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2
+      const atBoundary =
+        (event.deltaY > 0 && atBottom) || (event.deltaY < 0 && atTop)
+
+      if (!atBoundary) {
+        if (overscrollRef.current.amount > 0) snapEdgeBack()
+        return
+      }
+
+      const idx = modeIndexRef.current
+      const direction: OverscrollDirection = event.deltaY > 0 ? 'next' : 'prev'
+      const nextIndex = direction === 'next' ? idx + 1 : idx - 1
+      const canNavigate = nextIndex >= 0 && nextIndex < MODE_ORDER.length
+      if (canNavigate || overscrollRef.current.amount > 0) {
+        event.preventDefault()
+      }
+
+      applyBoundaryDelta(event.deltaY, 'wheel')
+    }
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (wheelLockRef.current || e.touches.length !== 1) return
+      touchStartYRef.current = e.touches[0].clientY
+      touchAtBoundaryRef.current = null
+    }
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (wheelLockRef.current || touchStartYRef.current == null || e.touches.length !== 1) return
+      const y = e.touches[0].clientY
+      const deltaY = touchStartYRef.current - y // match wheel: positive = scroll down / next
+      touchStartYRef.current = y
+
+      const atTop = el.scrollTop <= 0
+      const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2
+
+      if (deltaY > 0 && atBottom) touchAtBoundaryRef.current = 'next'
+      else if (deltaY < 0 && atTop) touchAtBoundaryRef.current = 'prev'
+      else if (
+        touchAtBoundaryRef.current === 'next' && !(atBottom && deltaY > 0) &&
+        overscrollRef.current.amount <= 0
+      ) {
+        touchAtBoundaryRef.current = null
+      } else if (
+        touchAtBoundaryRef.current === 'prev' && !(atTop && deltaY < 0) &&
+        overscrollRef.current.amount <= 0
+      ) {
+        touchAtBoundaryRef.current = null
+      }
+
+      if (!touchAtBoundaryRef.current && overscrollRef.current.amount <= 0) return
+
+      const owned = applyBoundaryDelta(deltaY, 'touch')
+      if (owned && e.cancelable) e.preventDefault()
+    }
+
+    const onTouchEnd = () => {
+      touchStartYRef.current = null
+      touchAtBoundaryRef.current = null
+      if (wheelLockRef.current) return
+      const overscroll = overscrollRef.current
+      if (overscroll.direction && overscroll.amount >= OVERSCROLL_COMMIT * 0.72) {
+        const dir = overscroll.direction
+        resetOverscrollState(overscroll)
+        setEdgePull(dir === 'next' ? -OVERSCROLL_MAX_PULL : OVERSCROLL_MAX_PULL)
+        tryCommitOverscroll(dir)
+        return
+      }
+      scheduleIdleSnap()
+    }
+
+    el.addEventListener('wheel', onWheel, { passive: false })
+    el.addEventListener('touchstart', onTouchStart, { passive: true })
+    el.addEventListener('touchmove', onTouchMove, { passive: false })
+    el.addEventListener('touchend', onTouchEnd)
+    el.addEventListener('touchcancel', onTouchEnd)
+    return () => {
+      el.removeEventListener('wheel', onWheel)
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchmove', onTouchMove)
+      el.removeEventListener('touchend', onTouchEnd)
+      el.removeEventListener('touchcancel', onTouchEnd)
+    }
+  }, [applyBoundaryDelta, scheduleIdleSnap, snapEdgeBack, tryCommitOverscroll])
 
   const isApiDirty = activeSettingsMode === 'quick'
     ? form.baseUrl !== settings.baseUrl ||
@@ -356,30 +623,47 @@ export function SettingsView() {
             <p className="text-sm text-[var(--text-muted)]">{meta.description}</p>
           </div>
           <div className="hidden items-center gap-1 rounded-full border border-[var(--border-color)] bg-[var(--bg-card)] px-2 py-1 sm:flex">
-            {MODE_ORDER.map((mode, index) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => switchMode(mode)}
-                aria-label={`切换到${MODE_META[mode].title}`}
-                className={`h-1.5 rounded-full transition-all ${
-                  activeSettingsMode === mode ? 'w-6 bg-[var(--accent-primary)]' : 'w-1.5 bg-[var(--border-color)] hover:bg-[var(--text-muted)]'
-                }`}
-                title={`${index + 1}. ${MODE_META[mode].title}`}
-              />
-            ))}
+            {MODE_ORDER.map((mode, index) => {
+              const isActive = activeSettingsMode === mode
+              const isNextHint =
+                edgePull < 0 && index === modeIndex + 1 && pullProgress > 0.15
+              const isPrevHint =
+                edgePull > 0 && index === modeIndex - 1 && pullProgress > 0.15
+              const hint = isNextHint || isPrevHint
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => {
+                    if (mode === activeSettingsMode) return
+                    const dir: ModeTransitionDir =
+                      index > modeIndex ? 'next' : index < modeIndex ? 'prev' : 'fade'
+                    switchMode(mode, dir)
+                  }}
+                  aria-label={`切换到${MODE_META[mode].title}`}
+                  className={`h-1.5 rounded-full transition-[width,background-color] duration-200 ${
+                    isActive
+                      ? 'w-6 bg-[var(--accent-primary)]'
+                      : hint
+                        ? `bg-[var(--accent-primary)]/55 ${pullProgress > 0.65 ? 'w-3.5' : 'w-2.5'}`
+                        : 'w-1.5 bg-[var(--border-color)] hover:bg-[var(--text-muted)]'
+                  }`}
+                  title={`${index + 1}. ${MODE_META[mode].title}`}
+                />
+              )
+            })}
           </div>
         </div>
       </div>
 
       <div
         ref={pageRef}
-        onWheel={handleWheel}
-        className={`h-[calc(100%-57px)] overflow-y-auto scrollbar-gutter-stable transition-all duration-300 ${
-          isTransitioning ? 'translate-y-2 opacity-30' : 'translate-y-0 opacity-100'
-        }`}
+        className="h-[calc(100%-57px)] overflow-y-auto overflow-x-hidden scrollbar-gutter-stable overscroll-y-contain"
       >
-        <div className="mx-auto w-full max-w-3xl px-6 py-8 space-y-8">
+        <div
+          className="mx-auto w-full max-w-3xl px-6 py-8 space-y-8 will-change-transform"
+          style={pageMotionStyle}
+        >
           <section className="space-y-4">
             <SectionHeader icon={Brain} title="缸中之脑" description="配置当前模式使用的模型 API" />
             {activeSettingsMode === 'quick' && renderQuickBrain({
@@ -473,9 +757,21 @@ export function SettingsView() {
           </section>
 
           <div className="flex items-center justify-center gap-2 pb-4 pt-2 text-xs text-[var(--text-muted)]">
-            <span>{modeIndex > 0 ? '继续向上滚动切到上一页' : '已经是第一页'}</span>
+            <span>
+              {modeIndex > 0
+                ? pullProgress > 0.2 && edgePull > 0
+                  ? '松手回弹 · 再拉一点切到上一页'
+                  : '到顶后继续上拉切到上一页'
+                : '已经是第一页'}
+            </span>
             <span>·</span>
-            <span>{modeIndex < MODE_ORDER.length - 1 ? '到底后继续滚动切到下一页' : '已经是最后一页'}</span>
+            <span>
+              {modeIndex < MODE_ORDER.length - 1
+                ? pullProgress > 0.2 && edgePull < 0
+                  ? '松手回弹 · 再拉一点切到下一页'
+                  : '到底后继续下拉切到下一页'
+                : '已经是最后一页'}
+            </span>
           </div>
         </div>
       </div>

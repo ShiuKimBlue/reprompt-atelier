@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { RotateCcw, BookOpen, ChevronRight, ChevronLeft, Footprints, Clock } from 'lucide-react'
+import { RotateCcw, BookOpen, ChevronRight, ChevronLeft, Footprints, Clock, PanelLeft } from 'lucide-react'
 import { useGrimoireStore } from '@/stores/useGrimoireStore'
 import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion'
 import { MarkdownRenderer } from './MarkdownRenderer'
@@ -13,9 +13,31 @@ interface ChapterContentProps {
   sectionId: string | null
   subSectionId: string | null
   onNavigate: (chapterId: string, sectionId: string | null, subSectionId?: string | null) => void
+  /** Mobile reader: open ChapterNav drawer */
+  onOpenNav?: () => void
 }
 
-export function ChapterContent({ chapters, chapterId, sectionId, subSectionId, onNavigate }: ChapterContentProps) {
+function CatalogButton({ onOpenNav }: { onOpenNav?: () => void }) {
+  if (!onOpenNav) return null
+  return (
+    <div className="mb-4 md:hidden">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={onOpenNav}
+        className="h-10 gap-2 rounded-xl border-[var(--border-color)] bg-[var(--bg-card)] px-3 text-sm font-medium text-[var(--text-primary)]"
+        aria-label="打开章节目录"
+        title="打开章节目录"
+      >
+        <PanelLeft className="h-4 w-4 text-[var(--accent-primary)]" />
+        目录
+      </Button>
+    </div>
+  )
+}
+
+export function ChapterContent({ chapters, chapterId, sectionId, subSectionId, onNavigate, onOpenNav }: ChapterContentProps) {
   const [content, setContent] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -165,13 +187,21 @@ export function ChapterContent({ chapters, chapterId, sectionId, subSectionId, o
 
   if (!chapterId) {
     return (
-      <div className="flex-1 flex items-center justify-center px-8 text-[var(--text-muted)]">
+      <div className="flex flex-1 flex-col min-w-0">
+        <div className="px-4 pt-4 sm:px-6 md:px-8 md:pt-6">
+          <CatalogButton onOpenNav={onOpenNav} />
+        </div>
+        <div className="flex flex-1 items-center justify-center px-4 pb-8 text-[var(--text-muted)] sm:px-6 md:px-8">
         <div className="w-full max-w-lg text-center">
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--accent-light)] mx-auto mb-3">
             <BookOpen className="h-5 w-5 text-[var(--accent-primary)]" />
           </div>
           <p className="text-lg mb-2">选择一个章节开始阅读</p>
-          <p className="text-sm">从左侧目录选择章节或搜索关键词快速定位</p>
+          <p className="text-sm">
+            {onOpenNav
+              ? '点上方「目录」选择章节，或在目录里搜索关键词快速定位'
+              : '从左侧目录选择章节或搜索关键词快速定位'}
+          </p>
 
           {visitedItemKeys.length > 0 && (
             <div className="mt-8 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/80 p-4 text-left">
@@ -202,6 +232,7 @@ export function ChapterContent({ chapters, chapterId, sectionId, subSectionId, o
             </div>
           )}
         </div>
+        </div>
       </div>
     )
   }
@@ -209,11 +240,12 @@ export function ChapterContent({ chapters, chapterId, sectionId, subSectionId, o
   const fileId = subSectionId ?? sectionId ?? chapterId
 
   return (
-    <div className="flex-1 flex overflow-hidden">
-      <div ref={contentRef as React.RefObject<HTMLDivElement>} className="flex-1 overflow-y-auto scrollbar-gutter-stable px-8 py-12">
-        <div className="max-w-3xl mx-auto">
+    <div className="flex-1 flex overflow-hidden min-w-0">
+      <div ref={contentRef as React.RefObject<HTMLDivElement>} className="flex-1 overflow-y-auto scrollbar-gutter-stable px-4 py-8 sm:px-6 sm:py-10 md:px-8 md:py-12">
+        <div className="max-w-3xl mx-auto min-w-0">
+          <CatalogButton onOpenNav={onOpenNav} />
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-1.5 text-sm text-[var(--text-muted)] mb-6">
+          <nav className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm text-[var(--text-muted)] mb-6">
             {currentChapter && (
               <>
                 <button

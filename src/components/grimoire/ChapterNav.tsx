@@ -58,9 +58,18 @@ type SearchableItem = {
 interface ChapterNavProps {
   chapters: GrimoireChapter[]
   onCloseBook: () => void
+  /** Called after any navigation intent so mobile drawer can close */
+  onNavigateComplete?: () => void
+  /** drawer: fill overlay panel; docked: fixed desktop side rail */
+  variant?: 'docked' | 'drawer'
 }
 
-export function ChapterNav({ chapters, onCloseBook }: ChapterNavProps) {
+export function ChapterNav({
+  chapters,
+  onCloseBook,
+  onNavigateComplete,
+  variant = 'docked',
+}: ChapterNavProps) {
   const { currentChapter, currentSection, currentSubSection, navigate } = useGrimoireStore()
   const [query, setQuery] = useState('')
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
@@ -99,6 +108,10 @@ export function ChapterNav({ chapters, onCloseBook }: ChapterNavProps) {
       .slice(0, 8)
   }, [query, searchableItems])
 
+  const finishNavigate = () => {
+    onNavigateComplete?.()
+  }
+
   const handleSearchSelect = (item: SearchableItem) => {
     navigate(item.chapterId, item.sectionId, item.subSectionId)
     setQuery('')
@@ -107,7 +120,9 @@ export function ChapterNav({ chapters, onCloseBook }: ChapterNavProps) {
       [item.chapterId]: true,
       ...(item.sectionId ? { [item.sectionId]: true } : {}),
     }))
+    finishNavigate()
   }
+
   // Sync expanded state when store navigation changes (e.g. from TOC or internal links)
   useEffect(() => {
     if (currentChapter) {
@@ -127,6 +142,7 @@ export function ChapterNav({ chapters, onCloseBook }: ChapterNavProps) {
       setExpanded((prev) => ({ ...prev, [chapterId]: !prev[chapterId] }))
     }
     navigate(chapterId)
+    finishNavigate()
   }
 
   const handleSectionClick = (chapterId: string, sectionId: string, hasChildren: boolean) => {
@@ -134,20 +150,37 @@ export function ChapterNav({ chapters, onCloseBook }: ChapterNavProps) {
       setExpanded((prev) => ({ ...prev, [sectionId]: !prev[sectionId] }))
     }
     navigate(chapterId, sectionId)
+    finishNavigate()
   }
 
   const handleSubSectionClick = (chapterId: string, sectionId: string, subSectionId: string) => {
     navigate(chapterId, sectionId, subSectionId)
+    finishNavigate()
   }
 
+  const handleOverviewClick = () => {
+    navigate(null)
+    finishNavigate()
+  }
+
+  const handleCloseBook = () => {
+    finishNavigate()
+    onCloseBook()
+  }
+
+  const rootClass =
+    variant === 'drawer'
+      ? 'flex h-full w-full shrink-0 flex-col border-r border-[var(--border-color)] bg-[var(--bg-sidebar)]'
+      : 'flex h-full w-[17rem] shrink-0 flex-col border-r border-[var(--border-color)] bg-[var(--bg-sidebar)]'
+
   return (
-    <nav className="w-[17rem] h-full bg-[var(--bg-sidebar)] border-r border-[var(--border-color)] shrink-0 flex flex-col">
+    <nav className={rootClass} aria-label="章节目录">
       <Tooltip>
         <TooltipTrigger render={(
           <div className="border-b border-[var(--border-color)] p-2">
             <button
               type="button"
-              onClick={() => navigate(null)}
+              onClick={handleOverviewClick}
               className="flex h-10 w-full shrink-0 cursor-pointer items-center rounded-lg text-left transition-colors hover:bg-[var(--bg-hover)]"
             >
               <span className="ml-10 text-sm font-semibold text-[var(--text-primary)] transition-colors">
@@ -282,10 +315,10 @@ export function ChapterNav({ chapters, onCloseBook }: ChapterNavProps) {
         })}
       </div>
 
-      {/* Close button — returns to hero */}
       <div className="border-t border-[var(--border-color)] p-3">
         <button
-          onClick={onCloseBook}
+          type="button"
+          onClick={handleCloseBook}
           className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--accent-primary)]"
         >
           <BookX className="w-4 h-4" />

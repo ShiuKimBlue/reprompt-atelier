@@ -25,6 +25,7 @@ export const GalleryCard = forwardRef<HTMLDivElement, GalleryCardProps>(
     return (
       <div
         ref={ref}
+        data-gallery-id={item.id}
         role="button"
         tabIndex={0}
         className="rounded-xl overflow-hidden cursor-pointer outline-none transition-transform duration-200 ease-out hover:scale-[1.015] focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-main)]"
